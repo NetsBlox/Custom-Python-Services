@@ -1,3 +1,5 @@
+import json
+
 class types():
     def String(value):
         return str(value)
@@ -5,11 +7,19 @@ class types():
     def Number(value):
         return float(value)
 
+    def Int(value):
+        return int(value)
+
+    def List(value):
+        return value
+
+    def Any(value):
+        return value
+
 class RPC():
     def __init__(self, fn, help=''):
         self.help = help
         self.fn = fn
-        print('fn is', fn)
         assert(not isinstance(fn, RPC))
         assert(not isinstance(fn, Argument))
         self.args = []
@@ -35,12 +45,30 @@ class RPC():
         return metadata
 
     def __call__(self, arg_data):
-        args = [ arg.parse(arg_data[arg.name]) for arg in self.args ]
-        return self.fn(*args)
+        self.ensure_valid_args(arg_data)
+        args = {}
+        for arg in self.args:
+            arg_exists = arg_data[arg.name] != ''
+            if arg_exists:
+                args[arg.name] = arg.parse(arg_data[arg.name])
+
+        return self.fn(**args)
+
+    def ensure_valid_args(self, arg_data):
+        args = []
+        missing_args = []
+        for arg in self.args:
+            content = arg_data[arg.name]
+            arg_exists = content != ''
+            if not arg.optional and not arg_exists:
+                missing_args.append(arg.name)
+
+        if len(missing_args) > 0:
+            msg = '\n'.join([f'"{arg}" is required.' for arg in missing_args])
+            raise Exception(msg)
 
 class Argument():
     def __init__(self, name, help, type, optional=False):
-        print('creating Argument', name)
         self.name = name
         self.help = help
         self.type = type
