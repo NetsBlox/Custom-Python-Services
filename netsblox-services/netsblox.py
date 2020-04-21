@@ -7,7 +7,7 @@ class types():
     def Number(value):
         return float(value)
 
-    def Int(value):
+    def Integer(value):
         return int(value)
 
     def List(value):
@@ -82,7 +82,10 @@ class Argument():
         return metadata
 
     def parse(self, value):
-        return self.type(value)
+        try:
+            return self.type(value)
+        except Exception as e:
+            raise Exception(f'"{self.name}" is not a valid {self.type.__name__}')
 
 def rpc(help):
     return lambda fn: RPC.partial(fn, help=help)
