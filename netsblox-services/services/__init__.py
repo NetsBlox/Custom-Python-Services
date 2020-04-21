@@ -7,12 +7,6 @@ import sys
 from netsblox import RPC
 from json import JSONEncoder
 
-# class ServiceMetadata(JSONEncoder):
-    # def __init__(self, module):
-        # self.description = module.__doc__.strip()
-        # self.categories = getattr(module, 'categories', [])
-        # self.rpcs = [ rpc.metadata() for rpc in Service.get_rpcs(module) ]
-
 def get_service_metadata(module):
     data = {}
     data['description'] = module.__doc__.strip()
