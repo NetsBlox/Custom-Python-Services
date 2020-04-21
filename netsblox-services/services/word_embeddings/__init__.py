@@ -14,7 +14,7 @@ from os import path
 models_dir = path.join(path.dirname(__file__), 'models')
 os.makedirs(models_dir, exist_ok=True)
 
-@nb.rpc(help='Train a word2vec model and save it')
+@nb.rpc('Train a word2vec model and save it')
 @nb.argument('wordLists', type=types.List, help='List of word lists')
 @nb.argument('saveName', type=types.String, help='Name for trained model')
 @nb.argument('size', type=types.Integer, help='Dimensionality of the word vectors', optional=True)
