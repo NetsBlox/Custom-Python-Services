@@ -55,11 +55,17 @@ def getWordVector(modelName, word):
     return [ float(n) for n in vector ]
 
 
-@nb.rpc(help='Fetch example text (common texts from gensim)')
+@nb.rpc('Fetch example text (common texts from gensim)')
 def exampleText():
     return common_texts
 
-@nb.rpc(help='List available trained models')
+@nb.rpc('List available trained models')
 def listModels():
+    return os.listdir(models_dir)
+
+@nb.rpc('Delete trained model')
+@nb.argument('modelName', type=types.String, help='Name of trained model to delete')
+def deleteModel(modelName):
+    os.remove(path.join(models_dir, modelName))
     return os.listdir(models_dir)
 
