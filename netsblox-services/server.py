@@ -26,4 +26,7 @@ def service_metadata(service):
 def invoke_rpc(service, rpc):
     service = services.get(service)
     arg_data = request.json
-    return json.dumps(service.invoke_rpc(rpc, arg_data))
+    try:
+        return json.dumps(service.invoke_rpc(rpc, arg_data))
+    except Exception as e:
+        return str(e), 500
