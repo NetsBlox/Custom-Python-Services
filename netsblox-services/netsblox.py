@@ -85,11 +85,9 @@ class Argument():
         return self.type(value)
 
 def rpc(help):
-    print('rpc:', help)
     return lambda fn: RPC.partial(fn, help=help)
 
-def argument(name, help, type):
-    print('argument:', name)
-    arg = Argument(name, help, type)
+def argument(name, help='', type=types.Any, optional=False):
+    arg = Argument(name, help, type, optional)
     return lambda fn: RPC.partial(fn, arg=arg)
 
