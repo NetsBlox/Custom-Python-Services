@@ -2,6 +2,10 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask import request
 import json
+import sys
+from os.path import dirname
+current_dir = dirname(__file__)
+sys.path.append(current_dir)
 
 app = Flask(__name__)
 CORS(app)
