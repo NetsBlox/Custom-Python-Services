@@ -10,6 +10,9 @@ class types():
     def Integer(value):
         return int(value)
 
+    def Boolean(value):
+        return bool(value)
+
     def List(value):
         return value
 
