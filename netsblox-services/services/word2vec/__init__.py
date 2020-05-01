@@ -55,6 +55,14 @@ def getWordVector(modelName, word):
     vector = model.wv.word_vec(word)
     return [ float(n) for n in vector ]
 
+@nb.rpc('Get the vector representation for a given word')
+@nb.argument('modelName', type=types.String, help='Name of trained model to use')
+@nb.argument('words', type=types.List)
+def getWordVectors(modelName, words):
+    model = Word2Vec.load(path.join(models_dir, modelName))
+    vectors = ( model.wv.word_vec(word) for word in words )
+    return [[ float(n) for n in vector ] for vector in vectors ]
+
 
 @nb.rpc('Fetch example text (common texts from gensim)')
 def exampleText():
