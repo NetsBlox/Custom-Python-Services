@@ -10,10 +10,59 @@ from gensim.models import Word2Vec
 from gensim.test.utils import common_texts
 import os
 from os import path
+from flask import request
 
 service_name = 'Word2Vec'
 models_dir = path.join(path.dirname(__file__), 'models')
-os.makedirs(models_dir, exist_ok=True)
+public_models_file = path.join(models_dir, 'public-models.txt')
+if path.isfile(public_models_file):
+    with open(public_models_file, 'r') as f:
+        public_models = [ line.strip() for line in f.readlines() ]
+else:
+    public_models = []
+
+def resolve_model_name(model_name):
+    if not path.sep in model_name:
+        model_name = username() + path.sep + model_name
+    return model_name
+
+def set_model_public(model_name):
+    if model_name not in public_models:
+        public_models.append(model_name)
+        with open(public_models_file, 'w') as f:
+            f.write('\n'.join(public_models))
+
+def set_model_private(model_name):
+    if model_name in public_models:
+        public_models.remove(model_name)
+        with open(public_models_file, 'w') as f:
+            f.write('\n'.join(public_models))
+
+
+def ensure_exists(modelName):
+    model_path = path.join(models_dir, modelName)
+    exists = path.isfile(model_path)
+    if not exists:
+        raise Exception('Model not found')
+
+def username():
+    return request.args.get('username')
+
+def is_own_model(modelName):
+    return modelName.startswith(username() + path.sep)
+
+def load_model(model_name):
+    model_name = resolve_model_name(model_name)
+    err_msg = 'Model not found (or is not public!)'
+    ensure_exists(model_name)
+
+    is_public = model_name in public_models
+    if not (is_own_model(model_name) or is_public):
+        raise Exception('Cannot access model another user\'s private model')
+
+    model_path = path.join(models_dir, model_name)
+    model = Word2Vec.load(model_path)
+    return model
 
 @nb.rpc('Train a word2vec model and save it')
 @nb.argument('sentences', type=types.List, help='List of word lists')
@@ -23,19 +72,22 @@ os.makedirs(models_dir, exist_ok=True)
 @nb.argument('minCount', type=types.Integer, help='Ignore words with fewer than this number of occurrences', optional=True)
 def trainModel(sentences, saveName, size=100, window=5, minCount=2):
     model = Word2Vec(sentences, size=size, window=window, min_count=minCount)
-    model.save(path.join(models_dir, saveName))
+    saveName = resolve_model_name(saveName)
+    saveFile = path.join(models_dir, saveName)
+    os.makedirs(path.dirname(saveFile), exist_ok=True)
+    model.save(saveFile)
     return 'Model saved as ' + saveName
 
 @nb.rpc('Get the number of words in the vocabulary')
 @nb.argument('modelName', type=types.String, help='Name of trained model')
 def getVocabSize(modelName):
-    model = Word2Vec.load(path.join(models_dir, modelName))
+    model = load_model(modelName)
     return model.wv.vectors.shape[0]
 
 @nb.rpc('Get the entire vocabulary of a trained model.\n\nWarning: this can be quite large.')
 @nb.argument('modelName', type=types.String, help='Name of trained model')
 def getVocab(modelName):
-    model = Word2Vec.load(path.join(models_dir, modelName))
+    model = load_model(modelName)
     return list(model.wv.vocab.keys())
 
 @nb.rpc('Get the top-N most similar words. Positive words contribute positively to similarity; negative words contribute negatively')
@@ -44,14 +96,14 @@ def getVocab(modelName):
 @nb.argument('negative', type=types.List, help='Words that contribute negatively', optional=True)
 @nb.argument('count', type=types.Integer, help='Number of words to return', optional=True)
 def getMostSimilarWords(modelName, positive, negative=[], count=5):
-    model = Word2Vec.load(path.join(models_dir, modelName))
+    model = load_model(modelName)
     return model.wv.most_similar(positive, negative, count)
 
 @nb.rpc('Get the vector representation for a given word')
 @nb.argument('modelName', type=types.String, help='Name of trained model to use')
 @nb.argument('word', type=types.String)
 def getWordVector(modelName, word):
-    model = Word2Vec.load(path.join(models_dir, modelName))
+    model = load_model(modelName)
     vector = model.wv.word_vec(word)
     return [ float(n) for n in vector ]
 
@@ -59,7 +111,7 @@ def getWordVector(modelName, word):
 @nb.argument('modelName', type=types.String, help='Name of trained model to use')
 @nb.argument('words', type=types.List)
 def getWordVectors(modelName, words):
-    model = Word2Vec.load(path.join(models_dir, modelName))
+    model = load_model(modelName)
     vectors = ( model.wv.word_vec(word) for word in words )
     return [[ float(n) for n in vector ] for vector in vectors ]
 
@@ -73,16 +125,43 @@ def exampleText():
 
 @nb.rpc('List available trained models')
 def listModels():
-    return os.listdir(models_dir)
+    user = username()
+    user_models_dir = path.join(models_dir, user)
+    models = os.listdir(user_models_dir) if path.isdir(user_models_dir) else []
+    return models
 
-# @nb.rpc('List public trained models')
-# def listPublicModels():
-    # return os.listdir(models_dir)
+@nb.rpc('List public trained models')
+def listPublicModels():
+    return public_models
+
+@nb.rpc('Make model available to other users')
+@nb.argument('modelName', type=types.String, help='Name of trained model to publish')
+def publish(modelName):
+    modelName = resolve_model_name(modelName)
+    if not is_own_model(modelName):
+        owner = modelName.split(path.sep)[0]
+        raise Exception(f'Cannot publish model belonging to {owner}')
+    ensure_exists(modelName)
+    set_model_public(modelName)
+
+@nb.rpc('Make model private and only available to yourself')
+@nb.argument('modelName', type=types.String, help='Name of trained model to publish')
+def unpublish(modelName):
+    modelName = resolve_model_name(modelName)
+    if not is_own_model(modelName):
+        owner = modelName.split(path.sep)[0]
+        raise Exception(f'Cannot unpublish model belonging to {owner}')
+    ensure_exists(modelName)
+    set_model_private(modelName)
 
 @nb.rpc('Delete trained model')
 @nb.argument('modelName', type=types.String, help='Name of trained model to delete')
 def deleteModel(modelName):
-    # TODO: check permissions
+    modelName = resolve_model_name(modelName)
+    if not is_own_model(modelName):
+        owner = modelName.split(path.sep)[0]
+        raise Exception(f'Cannot delete model belonging to {owner}')
+
+    set_model_private(modelName)
     os.remove(path.join(models_dir, modelName))
-    return os.listdir(models_dir)
 
