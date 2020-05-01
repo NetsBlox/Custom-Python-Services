@@ -45,6 +45,10 @@ def ensure_exists(modelName):
     if not exists:
         raise Exception('Model not found')
 
+def ensure_logged_in():
+    if not username():
+        raise Exception('Please log in to use this feature')
+
 def username():
     return request.args.get('username')
 
@@ -71,6 +75,7 @@ def load_model(model_name):
 @nb.argument('window', type=types.Integer, help='Max distance between current and predicted word', optional=True)
 @nb.argument('minCount', type=types.Integer, help='Ignore words with fewer than this number of occurrences', optional=True)
 def trainModel(sentences, saveName, size=100, window=5, minCount=2):
+    ensure_logged_in()
     model = Word2Vec(sentences, size=size, window=window, min_count=minCount)
     saveName = resolve_model_name(saveName)
     saveFile = path.join(models_dir, saveName)
@@ -125,8 +130,8 @@ def exampleText():
 
 @nb.rpc('List available trained models')
 def listModels():
-    user = username()
-    user_models_dir = path.join(models_dir, user)
+    ensure_logged_in()
+    user_models_dir = path.join(models_dir, username())
     models = os.listdir(user_models_dir) if path.isdir(user_models_dir) else []
     return models
 
@@ -137,6 +142,7 @@ def listPublicModels():
 @nb.rpc('Make model available to other users')
 @nb.argument('modelName', type=types.String, help='Name of trained model to publish')
 def publish(modelName):
+    ensure_logged_in()
     modelName = resolve_model_name(modelName)
     if not is_own_model(modelName):
         owner = modelName.split(path.sep)[0]
@@ -147,6 +153,7 @@ def publish(modelName):
 @nb.rpc('Make model private and only available to yourself')
 @nb.argument('modelName', type=types.String, help='Name of trained model to publish')
 def unpublish(modelName):
+    ensure_logged_in()
     modelName = resolve_model_name(modelName)
     if not is_own_model(modelName):
         owner = modelName.split(path.sep)[0]
@@ -157,6 +164,7 @@ def unpublish(modelName):
 @nb.rpc('Delete trained model')
 @nb.argument('modelName', type=types.String, help='Name of trained model to delete')
 def deleteModel(modelName):
+    ensure_logged_in()
     modelName = resolve_model_name(modelName)
     if not is_own_model(modelName):
         owner = modelName.split(path.sep)[0]
