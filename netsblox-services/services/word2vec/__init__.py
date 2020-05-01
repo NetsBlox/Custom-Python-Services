@@ -49,6 +49,14 @@ def ensure_logged_in():
     if not username():
         raise Exception('Please log in to use this feature')
 
+def ensure_valid_name(model_name):
+    user_prefix = username() + path.sep
+    if model_name.startswith(user_prefix):
+        model_name = model_name[len(user_prefix):]
+
+    if not model_name.isalnum():
+        raise Exception('Invalid model name. Must be alphanumeric.')
+
 def username():
     return request.args.get('username')
 
@@ -76,6 +84,7 @@ def load_model(model_name):
 @nb.argument('minCount', type=types.Integer, help='Ignore words with fewer than this number of occurrences', optional=True)
 def trainModel(sentences, saveName, size=100, window=5, minCount=2):
     ensure_logged_in()
+    ensure_valid_name(saveName)
     model = Word2Vec(sentences, size=size, window=window, min_count=minCount)
     saveName = resolve_model_name(saveName)
     saveFile = path.join(models_dir, saveName)
