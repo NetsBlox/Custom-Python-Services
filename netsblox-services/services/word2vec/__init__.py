@@ -106,10 +106,14 @@ def getVocab(modelName):
 
 @nb.rpc('Get the top-N most similar words. Positive words contribute positively to similarity; negative words contribute negatively')
 @nb.argument('modelName', type=types.String, help='Name of trained model')
-@nb.argument('positive', type=types.List, help='Words that contribute positively')
+@nb.argument('positive', type=types.List, help='Words that contribute positively', optional=True)
 @nb.argument('negative', type=types.List, help='Words that contribute negatively', optional=True)
 @nb.argument('count', type=types.Integer, help='Number of words to return', optional=True)
-def getMostSimilarWords(modelName, positive, negative=[], count=5):
+def getMostSimilarWords(modelName, positive=[], negative=[], count=5):
+    num_examples = len(positive) + len(negative)
+    if num_examples == 0:
+        raise Exception('Positive and/or negative examples required.')
+
     model = load_model(modelName)
     return model.wv.most_similar(positive, negative, count)
 
