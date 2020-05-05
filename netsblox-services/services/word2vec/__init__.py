@@ -79,9 +79,9 @@ def load_model(model_name):
 @nb.rpc('Train a word2vec model and save it')
 @nb.argument('sentences', type=types.List, help='List of word lists')
 @nb.argument('saveName', type=types.String, help='Name for trained model')
-@nb.argument('size', type=types.Integer, help='Dimensionality of the word vectors', optional=True)
-@nb.argument('window', type=types.Integer, help='Max distance between current and predicted word', optional=True)
-@nb.argument('minCount', type=types.Integer, help='Ignore words with fewer than this number of occurrences', optional=True)
+@nb.argument('size', type=types.Integer, help='Dimensionality of the word vectors (default: 100)', optional=True)
+@nb.argument('window', type=types.Integer, help='Max distance between current and predicted word (default: 5)', optional=True)
+@nb.argument('minCount', type=types.Integer, help='Ignore words with fewer than this number of occurrences (default: 2)', optional=True)
 def trainModel(sentences, saveName, size=100, window=5, minCount=2):
     ensure_logged_in()
     ensure_valid_name(saveName)
@@ -108,7 +108,7 @@ def getVocab(modelName):
 @nb.argument('modelName', type=types.String, help='Name of trained model')
 @nb.argument('positive', type=types.List, help='Words that contribute positively', optional=True)
 @nb.argument('negative', type=types.List, help='Words that contribute negatively', optional=True)
-@nb.argument('count', type=types.Integer, help='Number of words to return', optional=True)
+@nb.argument('count', type=types.Integer, help='Number of words to return (default: 5)', optional=True)
 def getMostSimilarWords(modelName, positive=[], negative=[], count=5):
     num_examples = len(positive) + len(negative)
     if num_examples == 0:
