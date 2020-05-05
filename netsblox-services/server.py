@@ -28,6 +28,8 @@ def service_metadata(service):
 
 @app.route('/<service>/<rpc>', methods=['POST'])
 def invoke_rpc(service, rpc):
+    username = request.args.get('username')
+    print(f'{service}.{rpc}(<omitted>) invoked by {username}')
     service = services.get(service)
     arg_data = request.json
     try:
