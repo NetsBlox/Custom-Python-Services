@@ -2,6 +2,7 @@
 This is a simple example of a NetsBlox service in Python.
 """
 
+from flask import request
 import netsblox as nb
 from netsblox import types
 
@@ -19,4 +20,8 @@ def throws(msg):
 @nb.argument('y', type=types.Number, help='The second number to sum')
 def sum_nums(x, y):
     return x + y
+
+@nb.rpc('Get the username of the requestor')
+def username():
+    return request.args.get('username')
 
