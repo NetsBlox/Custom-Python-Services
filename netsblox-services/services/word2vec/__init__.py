@@ -6,20 +6,29 @@ For more information about gensim, check out https://radimrehurek.com/gensim/
 
 import netsblox as nb
 from netsblox import types
-from gensim.models import Word2Vec
+from gensim.models import Word2Vec, KeyedVectors
 from gensim.test.utils import common_texts
 import os
 from os import path
 from flask import request
 
 service_name = 'Word2Vec'
+
+def read_list(filepath):
+    if path.isfile(filepath):
+        with open(filepath, 'r') as f:
+            return [ line.strip() for line in f.readlines() ]
+    else:
+        return []
+
 models_dir = path.join(path.dirname(__file__), 'models')
 public_models_file = path.join(models_dir, 'public-models.txt')
-if path.isfile(public_models_file):
-    with open(public_models_file, 'r') as f:
-        public_models = [ line.strip() for line in f.readlines() ]
-else:
-    public_models = []
+public_models = read_list(public_models_file)
+public_vectors_file = path.join(models_dir, 'public-wv.txt')
+public_vectors = read_list(public_vectors_file)
+
+for wv_name in public_vectors:
+    public_models.append(wv_name)
 
 def resolve_model_name(model_name):
     if not path.sep in model_name:
@@ -76,6 +85,12 @@ def load_model(model_name):
     model = Word2Vec.load(model_path)
     return model
 
+def load_wv(model_name):
+    if model_name in public_vectors:
+        return KeyedVectors.load(path.join(models_dir, model_name), mmap='r')
+    else:
+        return load_model(model_name).wv
+
 @nb.rpc('Train a word2vec model and save it')
 @nb.argument('sentences', type=types.List, help='List of word lists')
 @nb.argument('saveName', type=types.String, help='Name for trained model')
@@ -95,14 +110,14 @@ def trainModel(sentences, saveName, size=100, window=5, minCount=2):
 @nb.rpc('Get the number of words in the vocabulary')
 @nb.argument('modelName', type=types.String, help='Name of trained model')
 def getVocabSize(modelName):
-    model = load_model(modelName)
-    return model.wv.vectors.shape[0]
+    wv = load_wv(modelName)
+    return wv.vectors.shape[0]
 
 @nb.rpc('Get the entire vocabulary of a trained model.\n\nWarning: this can be quite large.')
 @nb.argument('modelName', type=types.String, help='Name of trained model')
 def getVocab(modelName):
-    model = load_model(modelName)
-    return list(model.wv.vocab.keys())
+    wv = load_wv(modelName)
+    return list(wv.vocab.keys())
 
 @nb.rpc('Get the top-N most similar words. Positive words contribute positively to similarity; negative words contribute negatively')
 @nb.argument('modelName', type=types.String, help='Name of trained model')
@@ -114,23 +129,23 @@ def getMostSimilarWords(modelName, positive=[], negative=[], count=5):
     if num_examples == 0:
         raise Exception('Positive and/or negative examples required.')
 
-    model = load_model(modelName)
-    return model.wv.most_similar(positive, negative, count)
+    wv = load_wv(modelName)
+    return wv.most_similar(positive, negative, count)
 
 @nb.rpc('Get the vector representation for a given word')
 @nb.argument('modelName', type=types.String, help='Name of trained model to use')
 @nb.argument('word', type=types.String)
 def getWordVector(modelName, word):
-    model = load_model(modelName)
-    vector = model.wv.word_vec(word)
+    wv = load_wv(modelName)
+    vector = wv.word_vec(word)
     return [ float(n) for n in vector ]
 
 @nb.rpc('Get the vector representation for a given word')
 @nb.argument('modelName', type=types.String, help='Name of trained model to use')
 @nb.argument('words', type=types.List)
 def getWordVectors(modelName, words):
-    model = load_model(modelName)
-    vectors = ( model.wv.word_vec(word) for word in words )
+    wv = load_wv(modelName)
+    vectors = ( wv.word_vec(word) for word in words )
     return [[ float(n) for n in vector ] for vector in vectors ]
 
 
