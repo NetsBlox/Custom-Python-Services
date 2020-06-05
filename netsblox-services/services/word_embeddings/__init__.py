@@ -16,8 +16,8 @@ model_names['es'] = 'es_core_news_md'
 # model_names['el'] = 'el_core_news_md'
 
 models = {}
-for (lang, name) in model_names.items():
-    models[lang] = spacy.load(name)
+#for (lang, name) in model_names.items():
+    #models[lang] = spacy.load(name)
 
 def to_list(vec):
     return [ float(n) for n in vec ]
@@ -33,12 +33,15 @@ def getWordVectors(words, language='en'):
     if language not in model_names:
         raise Exception(f'Unrecognized language: {language}')
 
-    #nlp = spacy.load(model_names[language])
-    nlp = models[lang]
+    if language not in models:
+        model_name = model_names[language]
+        models[language] = spacy.load(model_name)
+
+    nlp = models[language]
     return [to_list(nlp(word).vector) for word in words]
 
 @nb.rpc('Retrieve word vectors using the given language model')
 @nb.argument('word', type=types.String, help='Word vector to retrieve')
 @nb.argument('language', type=types.String, help='Language model to use', optional=True)
 def getWordVector(word, language='en'):
-    return next(getWordVectors([word], language))
+    return getWordVectors.fn([word], language)[0]
