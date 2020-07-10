@@ -11,6 +11,7 @@ from gensim.test.utils import common_texts
 import os
 from os import path
 from flask import request
+import services.datasets as datasets
 
 service_name = 'Word2Vec'
 
@@ -87,17 +88,18 @@ def load_model(model_name):
 
 def load_wv(model_name):
     if model_name in public_vectors:
-        return KeyedVectors.load(path.join(models_dir, model_name), mmap='r')
+        return KeyedVectors.load(path.join(models_dir, model_name))
     else:
         return load_model(model_name).wv
 
 @nb.rpc('Train a word2vec model and save it')
-@nb.argument('sentences', type=types.List, help='List of word lists')
+@nb.argument('sentences', type=types.List, help='List of word lists or dataset name (from Datasets service)')
 @nb.argument('saveName', type=types.String, help='Name for trained model')
 @nb.argument('size', type=types.Integer, help='Dimensionality of the word vectors (default: 100)', optional=True)
 @nb.argument('window', type=types.Integer, help='Max distance between current and predicted word (default: 5)', optional=True)
 @nb.argument('minCount', type=types.Integer, help='Ignore words with fewer than this number of occurrences (default: 2)', optional=True)
 def trainModel(sentences, saveName, size=100, window=5, minCount=2):
+    sentences = datasets.get_dataset(sentences, sentences)
     ensure_logged_in()
     ensure_valid_name(saveName)
     model = Word2Vec(sentences, size=size, window=window, min_count=minCount)
