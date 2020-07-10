@@ -63,5 +63,8 @@ class Services():
         return [{'name': service.name, 'categories': service.metadata['categories']} for service in self.services]
 
     def get(self, name):
-        service = next((service for service in self.services if service.name == name))
-        return service
+        try:
+            service = next((service for service in self.services if service.name == name))
+            return service
+        except StopIteration:
+            raise Exception('Service not found.')

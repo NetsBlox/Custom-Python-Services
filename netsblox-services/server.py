@@ -23,16 +23,19 @@ def favicon():
 
 @app.route('/<service>')
 def service_metadata(service):
-    service = services.get(service)
-    return jsonify(service.metadata)
+    try:
+        service = services.get(service)
+        return jsonify(service.metadata)
+    except Exception as e:
+        return str(e), 500
 
 @app.route('/<service>/<rpc>', methods=['POST'])
 def invoke_rpc(service, rpc):
     username = request.args.get('username')
     print(f'{service}.{rpc}(<omitted>) invoked by {username}')
-    service = services.get(service)
-    arg_data = request.json
     try:
+        service = services.get(service)
+        arg_data = request.json
         return json.dumps(service.invoke_rpc(rpc, arg_data))
     except Exception as e:
         return str(e), 500
