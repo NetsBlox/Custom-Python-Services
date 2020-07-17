@@ -24,6 +24,10 @@ def get_dataset(name, default=None):
 def dataset_exists(name):
     return path.isdir(path.join(data_dir, name))
 
+@nb.rpc('List available datasets')
+def list():
+    return os.listdir(data_dir)
+
 @nb.rpc('Initialize a new dataset')
 @nb.argument('dataset', type=types.String, help='Name of dataset to create.')
 def create(dataset):
