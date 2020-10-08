@@ -1,5 +1,3 @@
-**Note**: This relies on NetsBlox features that are still under development and are not yet supported on https://editor.netsblox.org
-
 # Custom Python Services for NetsBlox
 This contains a Python server for hosting your own NetsBlox services which can also be used from https://editor.netsblox.org.
 
