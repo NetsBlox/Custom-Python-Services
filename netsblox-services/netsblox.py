@@ -1,5 +1,6 @@
 import json
 
+
 class types():
     def String(value):
         return str(value)
@@ -19,18 +20,20 @@ class types():
     def Any(value):
         return value
 
+
 class RPC():
     def __init__(self, fn, help=''):
         self.help = help
         self.fn = fn
-        assert(not isinstance(fn, RPC))
-        assert(not isinstance(fn, Argument))
+        self.image = False
+        assert (not isinstance(fn, RPC))
+        assert (not isinstance(fn, Argument))
         self.args = []
 
     def add_argument(self, arg):
         self.args.append(arg)
 
-    def partial(fn, arg=None, help=None):
+    def partial(fn, arg=None, help=None, image=False):
         rpc = fn if isinstance(fn, RPC) else RPC(fn)
         if arg is not None:
             rpc.args.insert(0, arg)
@@ -38,13 +41,16 @@ class RPC():
         if help is not None:
             rpc.help = help
 
+        rpc.image = image
+
         return rpc
 
     def metadata(self):
         metadata = {}
         metadata['name'] = self.fn.__name__
         metadata['description'] = self.help
-        metadata['args'] = [ arg.metadata() for arg in self.args ]
+        metadata['image'] = self.image
+        metadata['args'] = [arg.metadata() for arg in self.args]
         return metadata
 
     def __call__(self, arg_data):
@@ -70,6 +76,7 @@ class RPC():
             msg = '\n'.join([f'"{arg}" is required.' for arg in missing_args])
             raise Exception(msg)
 
+
 class Argument():
     def __init__(self, name, help, type, optional=False):
         self.name = name
@@ -90,10 +97,15 @@ class Argument():
         except Exception as e:
             raise Exception(f'"{self.name}" is not a valid {self.type.__name__}')
 
+
 def rpc(help):
     return lambda fn: RPC.partial(fn, help=help)
+
+
+def image_rpc(help):
+    return lambda fn: RPC.partial(fn, help=help, image=True)
+
 
 def argument(name, help='', type=types.Any, optional=False):
     arg = Argument(name, help, type, optional)
     return lambda fn: RPC.partial(fn, arg=arg)
-

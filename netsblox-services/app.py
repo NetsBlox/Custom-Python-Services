@@ -1,4 +1,6 @@
+import base64
 import io
+from pprint import pprint
 from services import Services
 from flask import Flask, jsonify, send_file
 from flask_cors import CORS
@@ -42,11 +44,13 @@ def invoke_rpc(service, rpc):
         service = services.get(service)
         arg_data = request.json
 
-        print(rpc)
-        if rpc.image:
+        if service.metadata['rpcs'][rpc]['image']:
             print("image")
-            # b = base64.b64decode(benc.encode('utf-8'))
-            buf = io.BytesIO(service.invoke_rpc(rpc, arg_data))
+            data = service.invoke_rpc(rpc, arg_data)
+
+            data = base64.b64decode(data.encode('utf-8'))
+            # buf = io.BytesIO(bytes(data, encoding='utf-8'))
+            buf = io.BytesIO(data)
             buf.seek(0)
             return send_file(buf, mimetype="image/png")
         else:
